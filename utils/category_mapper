@@ -1,0 +1,76 @@
+# utils/category_mapper.py
+
+import re
+import pandas as pd
+
+# 기본 카테고리-키워드 매핑
+CATEGORY_KEYWORDS = {
+    "식비": [
+        "점심", "저녁", "아침", "식사", "밥", "카페", "커피", "음식", "버거", "피자", "치킨",
+        "분식", "라면", "김밥", "술", "맥주", "와인"
+    ],
+    "교통": [
+        "지하철", "버스", "택시", "기차", "KTX", "고속버스", "주유", "주유소",
+        "주차", "톨게이트", "하이패스"
+    ],
+    "쇼핑": [
+        "쿠팡", "11번가", "G마켓", "마켓컬리", "편의점", "올리브영",
+        "의류", "옷", "신발", "가방", "화장품", "생활용품"
+    ],
+    "주거/관리비": [
+        "월세", "전세", "관리비", "전기요금", "수도요금", "가스요금",
+        "난방비", "청소비"
+    ],
+    "통신": [
+        "통신요금", "휴대폰", "휴대전화", "핸드폰", "인터넷", "와이파이",
+        "SKT", "KT", "LGU", "U+"
+    ],
+    "교육": [
+        "학원", "수강료", "수업료", "교재", "도서", "책", "강의", "온라인강의",
+        "수업", "교육"
+    ],
+    "의료/건강": [
+        "병원", "약국", "진료", "처방", "검진", "치과",
+        "안경", "렌즈", "헬스장", "PT", "필라테스", "요가"
+    ],
+    "여가/문화": [
+        "영화", "넷플릭스", "공연", "콘서트", "뮤지컬",
+        "여행", "관광", "숙소", "호텔", "에어비앤비", "게임", "노래방"
+    ],
+    "기타": []  # 어떤 키워드에도 안 걸리면 기타
+}
+
+
+def detect_category_by_keywords(text: str) -> str:
+    """
+    지출 내역(메모/내용) 문자열을 받아 키워드 기반으로 카테고리를 반환.
+    아무 키워드도 매칭 안 되면 '기타' 반환.
+    """
+    if not isinstance(text, str):
+        return "기타"
+
+    lower_text = text.lower()
+
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        for kw in keywords:
+            # 대소문자, 한글 구분 없이 단순 포함 여부로 체크
+            if kw.lower() in lower_text:
+                return category
+
+    return "기타"
+
+
+def apply_category_mapping(df: pd.DataFrame,
+                           text_col: str = "description",
+                           category_col: str = "category") -> pd.DataFrame:
+    """
+    DataFrame에 키워드 기반 카테고리 컬럼 추가/갱신.
+    - text_col: 키워드 매칭에 사용할 텍스트 컬럼명 (예: 'description', '메모')
+    - category_col: 결과 카테고리 컬럼명
+    """
+    if text_col not in df.columns:
+        raise ValueError(f"키워드 매칭용 컬럼 '{text_col}' 이(가) DataFrame에 없습니다.")
+
+    df = df.copy()
+    df[category_col] = df[text_col].apply(detect_category_by_keywords)
+    return df
